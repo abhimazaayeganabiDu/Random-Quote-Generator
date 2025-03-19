@@ -62,7 +62,7 @@ async function quoteGenerator() {
     const quote = randomText.data.content
     const author = randomText.data.author
 
-    quoteText.innerText = `" ${text} "`
+    quoteText.innerText = `" ${quote} "`
     authorText.innerText = `-- ${author} `
 
     // save on local storage
