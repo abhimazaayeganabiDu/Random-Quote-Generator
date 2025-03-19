@@ -22,27 +22,28 @@ const getOrSaveFromStorage = ({ key, value, get }) => {
 async function onLoadFromLocalStorage() {
     try {
         const dataForQuote = await getOrSaveFromStorage({ key: "quote", get: true });
-        const data = await getOrSaveFromStorage({ key: "background", get: true })
+        const dataForBackgroundImage = await getOrSaveFromStorage({ key: "background", get: true })        
 
-        const imageSrc = data?.backgroundColor
-        const text = dataForQuote?.quote;
-        const author = dataForQuote?.author;
+        const imageSrc = dataForBackgroundImage ?
+            `url(${dataForBackgroundImage})` :
+            `url('images/background\ image.jpg')`
 
-        if (text) {
-            quoteText.innerText = text;
-        }
+        const text = dataForQuote ?
+            `" ${dataForQuote.quote} "` :
+            `" Never give up because you never know if the next try is going to be the one that works. "`
 
-        if (author) {
-            authorText.innerText = author;
-        }
+        const author = dataForQuote ?
+            `-- ${dataForQuote.author}` :
+            "-- Mary Kay Ash";
 
-        if (imageSrc) {
-            container.style.backgroundImage = imageSrc;
-        }
+
+        quoteText.innerText = text;
+        authorText.innerText = author;
+        container.style.backgroundImage = imageSrc;
+
     } catch (error) {
-
+        console.log("error in onLoad fxn", error);
     }
-
 }
 
 
@@ -58,19 +59,38 @@ async function quoteGenerator() {
     const response = await fetch(uri, options);
     const randomText = await response.json()
 
-    const text = randomText.data.content
+    const quote = randomText.data.content
     const author = randomText.data.author
 
     quoteText.innerText = `" ${text} "`
     authorText.innerText = `-- ${author} `
 
-    // saveOrLoad()
-    const dataForQuote = {
-        "quote": text,
-        author,
-    };
+    // save on local storage
 
-    getOrSaveFromStorage({ key: "quote", value: dataForQuote, get: false })
+    getOrSaveFromStorage({ key: "quote", value: {quote, author}, get: false })
+}
+
+async function setImageOnLocalStorage(blob) {
+    // Method 1 for handling image from api call and store it on localstorage
+
+    // const arrayBuffer = await blob.arrayBuffer(); // Convert to array buffer
+    // const byteArray = new Uint8Array(arrayBuffer); // Convert to Uint8Array
+    // const base64String = byteArray.reduce((data, byte) => data + String.fromCharCode(byte), '')
+    // const base64Data = 'data:' + response.headers.get('content-type') + ';base64,' + btoa(base64String);
+
+    // await getOrSaveFromStorage({ key: "background", value: base64Data, get: false })
+
+
+    // Method 2
+    const reader = new FileReader();
+    if (blob) {
+        reader.readAsDataURL(blob)
+    }
+
+    reader.onloadend = () => {
+        // this function set value on local storage
+        getOrSaveFromStorage({ key: "background", value: reader.result, get: false })
+    }
 }
 
 async function backgroundGenerator() {
@@ -85,16 +105,12 @@ async function backgroundGenerator() {
     }
 
     const response = await fetch(uri, options);
-
     const blob = await response.blob();
     const src = URL.createObjectURL(blob)
     container.style.backgroundImage = `url(${src})`
 
-    const dataForBackground = {
-        "backgroundColor": `url(${src})`
-    }
-    await getOrSaveFromStorage({ key: "background", value: dataForBackground, get: false })
-
+    // this function convert image to base64 and save this on localStorage
+    setImageOnLocalStorage(blob)
 }
 
 function copyToClipboard() {
